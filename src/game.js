@@ -184,3 +184,103 @@ start() {
         this.leaderboardEl.style.opacity = 0;
         setTimeout(() => { this.leaderboardEl.style.opacity = 1; }, 100);
     }
+
+    draw() {
+        // Clear
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw snake
+        for (let i = 0; i < this.snake.body.length; i++) {
+            let [x, y] = this.snake.body[i];
+            if (i === 0) {
+                // Head with eyes
+                this.ctx.fillStyle = '#0f0';
+                this.roundRect(
+                    x * this.gridSize, y * this.gridSize,
+                    this.gridSize, this.gridSize, 8, true, false
+                );
+                // Eyes
+                this.ctx.fillStyle = '#222';
+                let eyeOffset = this.snake.direction === 'ArrowUp' ? [6, 2] :
+                                this.snake.direction === 'ArrowDown' ? [6, 14] :
+                                this.snake.direction === 'ArrowLeft' ? [2, 6] : [14, 6];
+                this.ctx.beginPath();
+                this.ctx.arc(x * this.gridSize + eyeOffset[0], y * this.gridSize + eyeOffset[1], 3, 0, 2 * Math.PI);
+                this.ctx.arc(x * this.gridSize + eyeOffset[0] + 6, y * this.gridSize + eyeOffset[1], 3, 0, 2 * Math.PI);
+                this.ctx.fill();
+            } else if (i === this.snake.body.length - 1) {
+                // Tail
+                this.ctx.fillStyle = '#093';
+                this.roundRect(
+                    x * this.gridSize, y * this.gridSize,
+                    this.gridSize, this.gridSize, 10, true, false
+                );
+            } else {
+                // Body
+                this.ctx.fillStyle = '#3f3';
+                this.roundRect(
+                    x * this.gridSize, y * this.gridSize,
+                    this.gridSize, this.gridSize, 6, true, false
+                );
+            }
+        }
+
+        // Draw food
+        this.ctx.fillStyle = '#f00';
+        this.ctx.beginPath();
+        this.ctx.arc(
+            this.food.position[0] * this.gridSize + this.gridSize / 2,
+            this.food.position[1] * this.gridSize + this.gridSize / 2,
+            this.gridSize / 2.2, 0, 2 * Math.PI
+        );
+        this.ctx.fill();
+
+        // Draw power-up
+        if (this.powerup) {
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.8;
+            this.ctx.fillStyle = this.powerup.color;
+            this.ctx.beginPath();
+            this.ctx.arc(
+                this.powerup.position[0] * this.gridSize + this.gridSize / 2,
+                this.powerup.position[1] * this.gridSize + this.gridSize / 2,
+                this.gridSize / 2, 0, 2 * Math.PI
+            );
+            this.ctx.fill();
+            this.ctx.restore();
+        }
+
+        // Game over text with fade-in
+        if (!this.running) {
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.1;
+            this.ctx.fillStyle = '#fff';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.restore();
+
+            this.ctx.save();
+            this.ctx.globalAlpha = 1;
+            this.ctx.fillStyle = '#fff';
+            this.ctx.font = '32px sans-serif';
+            this.ctx.fillText('Game Over', 100, 200);
+            this.ctx.restore();
+        }
+    }
+
+    // Helper for rounded rectangles
+    roundRect(x, y, w, h, r, fill, stroke) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + r, y);
+        this.ctx.lineTo(x + w - r, y);
+        this.ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        this.ctx.lineTo(x + w, y + h - r);
+        this.ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        this.ctx.lineTo(x + r, y + h);
+        this.ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        this.ctx.lineTo(x, y + r);
+        this.ctx.quadraticCurveTo(x, y, x + r, y);
+        this.ctx.closePath();
+        if (fill) this.ctx.fill();
+        if (stroke) this.ctx.stroke();
+    }
+}
