@@ -85,3 +85,102 @@ start() {
             this.loop();
         }, this.speed);
     }
+
+    update() {
+        // Snake movement
+        const ateFood = this.snake.move(this.food.position);
+
+        // Power-up logic
+        if (this.powerup && this.snake.headEquals(this.powerup.position)) {
+            this.applyPowerup(this.powerup.type);
+            this.powerup = null;
+        }
+
+        // Food eaten
+        if (ateFood) {
+            try {
+                eatSound.currentTime = 0;
+                eatSound.play();
+            } catch (e) {}
+            this.scoreManager.increase(this.activePowerup === 'double' ? 2 : 1);
+            this.food.spawn(this.snake.body);
+            // Speed up with score milestones
+            if (this.scoreManager.score % 5 === 0 && this.speed > 40) this.speed -= 5;
+        }
+
+        // Power-up spawn
+        if (!this.powerup && Math.random() < 0.02) {
+            this.powerup = new PowerUp(this.rows, this.cols, this.snake.body, this.food.position);
+            this.powerupTimer = 150; // ~15 seconds
+        }
+
+        // Power-up timer
+        if (this.powerup) {
+            this.powerupTimer--;
+            if (this.powerupTimer <= 0) this.powerup = null;
+        }
+
+        // Active power-up timer
+        if (this.activePowerup) {
+            this.activePowerupTime--;
+            if (this.activePowerupTime <= 0) this.activePowerup = null;
+        }
+
+        // Collision detection
+        if (this.snake.checkCollision(this.rows, this.cols)) {
+            this.running = false;
+            this.scoreManager.saveHighScore();
+            this.updateLeaderboard();
+        }
+
+        this.updateScore();
+        this.updatePowerup();
+    }
+
+    applyPowerup(type) {
+        switch (type) {
+            case 'speed':
+                this.speed = Math.max(30, this.speed - 30);
+                this.activePowerup = 'speed';
+                this.activePowerupTime = 50;
+                break;
+            case 'slow':
+                this.speed = Math.min(200, this.speed + 50);
+                this.activePowerup = 'slow';
+                this.activePowerupTime = 50;
+                break;
+            case 'double':
+                this.activePowerup = 'double';
+                this.activePowerupTime = 50;
+                break;
+            case 'life':
+                this.snake.extraLife();
+                this.activePowerup = 'life';
+                this.activePowerupTime = 1;
+                break;
+        }
+    }
+
+    updateScore() {
+        this.scoreEl.textContent = this.scoreManager.score;
+        this.highScoreEl.textContent = this.scoreManager.highScore;
+    }
+
+    updatePowerup() {
+        this.powerupEl.textContent = this.activePowerup ? this.activePowerup : 'None';
+        this.powerupTimeEl.textContent = this.activePowerup ? Math.ceil(this.activePowerupTime / 10) : '0';
+    }
+
+    updateLeaderboard() {
+        let html = '<h3>Leaderboard</h3><ol style="transition: opacity 0.5s; opacity: 1;">';
+        this.leaderboard = this.scoreManager.getLeaderboard();
+        for (let i = 0; i < this.leaderboard.length; i++) {
+            const score = this.leaderboard[i];
+            const highlight = score === this.scoreManager.score ? ' style="background:#333;color:#ff0;border-radius:6px;"' : '';
+            html += `<li${highlight}><strong>Player</strong>: ${score}</li>`;
+        }
+        html += '</ol>';
+        this.leaderboardEl.innerHTML = html;
+        this.leaderboardEl.style.opacity = 0;
+        setTimeout(() => { this.leaderboardEl.style.opacity = 1; }, 100);
+    }
